@@ -1,0 +1,147 @@
+import 'package:flutter/foundation.dart';
+import 'package:firebase_database/firebase_database.dart';
+
+class TelurProvider extends ChangeNotifier {
+  final FirebaseDatabase _database = FirebaseDatabase.instance;
+  late DatabaseReference _riwayatRef;
+
+  int _telurHariIni = 0;
+  int _totalTelur = 0;
+  String _lastResetDate = '';
+  bool _isSynced = false;
+
+  int get telurHariIni => _telurHariIni;
+  int get totalTelur => _totalTelur;
+  bool get isSynced => _isSynced;
+
+  TelurProvider() {
+    _riwayatRef = _database.ref('riwayat');
+    _initializeRiwayat();
+  }
+
+  Future<void> _initializeRiwayat() async {
+    try {
+      // Set initial values if not exist
+      final snapshot = await _riwayatRef.get();
+
+      if (!snapshot.exists) {
+        // Create initial structure
+        await _riwayatRef.set({
+          'telur_hari_ini': 0,
+          'total_telur': 0,
+          'last_reset_date': DateTime.now().toIso8601String().split('T')[0],
+        });
+      }
+
+      // Fetch current data
+      _loadRiwayat();
+
+      // Listen for changes
+      _riwayatRef.onValue.listen((event) {
+        if (event.snapshot.exists) {
+          final data = event.snapshot.value as Map<dynamic, dynamic>;
+          _telurHariIni = data['telur_hari_ini'] ?? 0;
+          _totalTelur = data['total_telur'] ?? 0;
+          _lastResetDate = data['last_reset_date'] ?? '';
+
+          // Check if auto-reset is needed
+          _checkAndResetIfNeeded();
+
+          notifyListeners();
+        }
+      });
+
+      _isSynced = true;
+      notifyListeners();
+    } catch (e) {
+      print('Error initializing telur data: $e');
+      _isSynced = false;
+    }
+  }
+
+  Future<void> _loadRiwayat() async {
+    try {
+      final snapshot = await _riwayatRef.get();
+      if (snapshot.exists) {
+        final data = snapshot.value as Map<dynamic, dynamic>;
+        _telurHariIni = data['telur_hari_ini'] ?? 0;
+        _totalTelur = data['total_telur'] ?? 0;
+        _lastResetDate = data['last_reset_date'] ?? '';
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error loading telur data: $e');
+    }
+  }
+
+  Future<void> _checkAndResetIfNeeded() async {
+    try {
+      final todayDate = DateTime.now().toIso8601String().split('T')[0];
+
+      if (_lastResetDate != todayDate) {
+        // Reset telur_hari_ini for new day
+        await _riwayatRef.update({
+          'telur_hari_ini': 0,
+          'last_reset_date': todayDate,
+        });
+        _telurHariIni = 0;
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error checking/resetting telur data: $e');
+    }
+  }
+
+  Future<void> addTelurHariIni(int jumlah) async {
+    try {
+      // Check and reset if needed first
+      await _checkAndResetIfNeeded();
+
+      final newTotal = _telurHariIni + jumlah;
+      await _riwayatRef.update({'telur_hari_ini': newTotal});
+      _telurHariIni = newTotal;
+      notifyListeners();
+    } catch (e) {
+      print('Error adding telur hari ini: $e');
+    }
+  }
+
+  Future<void> setTotalTelur(int total) async {
+    try {
+      await _riwayatRef.update({'total_telur': total});
+      _totalTelur = total;
+      notifyListeners();
+    } catch (e) {
+      print('Error setting total telur: $e');
+    }
+  }
+
+  Future<void> resetTelurHariIni() async {
+    try {
+      final todayDate = DateTime.now().toIso8601String().split('T')[0];
+      await _riwayatRef.update({
+        'telur_hari_ini': 0,
+        'last_reset_date': todayDate,
+      });
+      _telurHariIni = 0;
+      notifyListeners();
+    } catch (e) {
+      print('Error resetting telur hari ini: $e');
+    }
+  }
+
+  Future<void> manualReset() async {
+    try {
+      await _riwayatRef.set({
+        'telur_hari_ini': 0,
+        'total_telur': 0,
+        'last_reset_date': DateTime.now().toIso8601String().split('T')[0],
+      });
+      _telurHariIni = 0;
+      _totalTelur = 0;
+      notifyListeners();
+    } catch (e) {
+      print('Error manual reset: $e');
+    }
+  }
+}

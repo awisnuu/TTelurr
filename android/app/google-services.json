@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "22111260761",
+    "project_id": "telurku-fa78c",
+    "storage_bucket": "telurku-fa78c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:22111260761:android:d9b30f13c92df54a002148",
+        "android_client_info": {
+          "package_name": "com.example.telurku"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwF_fiwc1Cpsy570bvCYijRjHi1sd8n8U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
